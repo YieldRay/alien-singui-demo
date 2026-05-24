@@ -1,1 +1,93 @@
 @import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-bg: #2a2bd5;
+  --color-bg-deep: #2020b8;
+  --color-fg: #fff;
+  --color-fg-muted: #c0c0ec;
+  --color-fg-subtle: #8b8bcb;
+  --color-line: #5151e3;
+  --color-line-soft: #3a3adc;
+  --color-mark: #ffe066;
+}
+
+* {
+  border-color: var(--color-line);
+  border-radius: 0 !important;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricprecision;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+::selection {
+  background: var(--color-mark);
+  color: var(--color-bg);
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+a:hover {
+  background: var(--color-mark);
+  color: var(--color-bg);
+}
+
+.h-doc {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.h-doc-1::before {
+  content: "# ";
+  color: var(--color-fg-muted);
+}
+
+.h-doc-2::before {
+  content: "## ~ ";
+  color: var(--color-fg-muted);
+}
+
+.code-block {
+  border: 1px solid var(--color-line);
+  background: var(--color-bg-deep);
+  font-family: var(--font-mono);
+  white-space: pre;
+  color: var(--color-fg);
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.callout {
+  border: 1px solid var(--color-line);
+  color: var(--color-fg-muted);
+  background: var(--color-bg-deep);
+  border-top: none;
+  padding: 6px 16px;
+  font-size: 11px;
+}
+
+.ic {
+  background: var(--color-line-soft);
+  color: var(--color-fg);
+  padding: 0 4px;
+}
