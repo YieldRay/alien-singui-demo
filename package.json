@@ -12,6 +12,8 @@
     "alien-signals": "^3.2.1"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "bun-plugin-tailwind": "^0.1.2",
+    "tailwindcss": "^4.3.0"
   }
 }
