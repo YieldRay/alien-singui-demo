@@ -129,9 +129,11 @@ const CAPTURE_NAME_EVENTS = new Set(["gotpointercapture", "lostpointercapture"])
 
 function parseEventKey(key: string): { eventName: string; capture: boolean } {
   if (key.endsWith("Capture")) {
-    const eventName = key.slice(2, -7).toLowerCase();
-    if (!CAPTURE_NAME_EVENTS.has(eventName)) {
-      return { eventName, capture: true };
+    const stripped = key.slice(2, -7).toLowerCase();
+    const fullName = key.slice(2).toLowerCase(); // e.g. "gotpointercapture"
+    // If the full lowercased name is a real event ending in "capture", don't strip
+    if (!CAPTURE_NAME_EVENTS.has(fullName)) {
+      return { eventName: stripped, capture: true };
     }
   }
   return { eventName: key.slice(2).toLowerCase(), capture: false };
