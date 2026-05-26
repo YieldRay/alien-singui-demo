@@ -1,4 +1,5 @@
 import { tags, text, signal, computed } from "./alien-singui.ts";
+import { highlight } from "sugar-high";
 
 const { a, button, div, footer, h1, h2, header, input, main, p, pre, code, section, span } = tags;
 
@@ -28,7 +29,12 @@ function InlineCode(children: VoidFunction) {
 
 function TerminalBlock(attrs: { commands: VoidFunction; output: VoidFunction }) {
   div({ class: "my-6" }, () => {
-    pre({ class: "code-block" }, () => code(attrs.commands));
+    pre({ class: "code-block" }, () =>
+      code(({ el }) => {
+        attrs.commands();
+        el.innerHTML = highlight(el.textContent);
+      }),
+    );
     div({ class: "callout" }, attrs.output);
   });
 }
@@ -41,27 +47,34 @@ function Button(attrs: { onClick: VoidFunction }, children: VoidFunction) {
 
 function Layout(children: VoidFunction) {
   div({ class: "min-h-screen font-mono" }, () => {
-    header({
-      class: "grid grid-cols-2 gap-x-8 px-6 pt-6 pb-10 text-[12px] uppercase leading-tight tracking-wide sm:px-10",
-    }, () => {
-      div(() => a({ class: `font-bold ${styles.link}`, href: "/" }, () => text("ALIEN-SINGUI.DEV")));
-      div({ class: "flex flex-col items-end" }, () => {
-        a({ class: styles.link, href: "https://github.com/YieldRay/alien-singui" }, () => text("[ CORE ]"));
-        a({ class: styles.link, href: "https://github.com/YieldRay/alien-singui-demo" }, () => text("[ DEMO ]"));
-      });
-    });
+    header(
+      {
+        class: "grid grid-cols-2 gap-x-8 px-6 pt-6 pb-10 text-[12px] uppercase leading-tight tracking-wide sm:px-10",
+      },
+      () => {
+        div(() => a({ class: `font-bold ${styles.link}`, href: "/" }, () => text("ALIEN-SINGUI")));
+        div({ class: "flex flex-col items-end" }, () => {
+          a({ class: styles.link, href: "https://github.com/YieldRay/alien-singui" }, () => text("[ CORE ]"));
+          a({ class: styles.link, href: "https://github.com/YieldRay/alien-singui-demo" }, () => text("[ DEMO ]"));
+        });
+      },
+    );
 
     main(children);
 
-    footer({
-      class: "mx-auto max-w-[1100px] border-t border-[var(--color-line)] px-6 py-10 text-[11px] uppercase tracking-wide sm:px-10",
-    }, () => {
-      div({ class: "text-[var(--color-fg-muted)]" }, () => text("--\u2212"));
-      div({ class: "mt-6 text-[var(--color-fg-muted)]" }, () => {
-        const year = new Date().getFullYear();
-        span(() => text(`~*~ \u00A9 ${year} ALIEN-SINGUI. MIT LICENSED. ~*~`));
-      });
-    });
+    footer(
+      {
+        class:
+          "mx-auto max-w-[1100px] border-t border-[var(--color-line)] px-6 py-10 text-[11px] uppercase tracking-wide sm:px-10",
+      },
+      () => {
+        div({ class: "text-[var(--color-fg-muted)]" }, () => text("--\u2212"));
+        div({ class: "mt-6 text-[var(--color-fg-muted)]" }, () => {
+          const year = new Date().getFullYear();
+          span(() => text(`~*~ \u00A9 ${year} ALIEN-SINGUI. MIT LICENSED. ~*~`));
+        });
+      },
+    );
   });
 }
 
@@ -99,13 +112,14 @@ export default function App() {
       });
 
       TerminalBlock({
-        commands: () => text(
-          'import { tags, text, mount } from "./alien-singui.ts"\n'
-          + "const { div, button } = tags\n\n"
-          + "mount(root, () => {\n"
-          + '  div(() => text("hello, signals"))\n'
-          + "})",
-        ),
+        commands: () =>
+          text(
+            'import { tags, text, mount } from "./alien-singui.ts"\n' +
+              "const { div, button } = tags\n\n" +
+              "mount(root, () => {\n" +
+              '  div(() => text("hello, signals"))\n' +
+              "})",
+          ),
         output: () => text("mounted \u2192 <div>hello, signals</div>"),
       });
     });
@@ -126,16 +140,19 @@ export default function App() {
       TerminalBlock({
         commands: () => {
           text("> enter user context:\n");
-          input({
-            type: "text",
-            class: styles.input,
-            spellcheck: false,
-            autocomplete: "off",
-            placeholder: "type a name...",
-            onInput: (e) => name((e.target as HTMLInputElement).value),
-          }, ({ prop }) => {
-            prop.value = name;
-          });
+          input(
+            {
+              type: "text",
+              class: styles.input,
+              spellcheck: false,
+              autocomplete: "off",
+              placeholder: "type a name...",
+              onInput: (e) => name((e.target as HTMLInputElement).value),
+            },
+            ({ prop }) => {
+              prop.value = name;
+            },
+          );
         },
         output: () => text`> Hello, ${name}! The DOM is strictly synchronized.`,
       });

@@ -9,13 +9,108 @@
  * - HMR state preservation is built into `signal()` and `mount()`
  */
 
-import { effect, computed, effectScope, signal as rawSignal, isSignal, isComputed } from "alien-signals";
+import {
+  effect,
+  computed,
+  effectScope,
+  signal as rawSignal,
+  isSignal,
+  isComputed,
+  startBatch,
+  endBatch,
+} from "alien-signals";
 import type { TagProxy, TagTools, AttrKeys, MaybeReactive } from "./types";
 
 // Re-export alien-signals primitives
-export { effect, computed, effectScope };
-export { getActiveSub, setActiveSub, getBatchDepth, startBatch, endBatch } from "alien-signals";
+export { computed, effectScope };
 export { isSignal, isComputed, isEffect, isEffectScope, trigger } from "alien-signals";
+export { batchEffect as effect };
+
+// ────────────────────────────────────────────────────────────────────────────
+// Batched effect — deduplicates re-runs within a microtask
+// ────────────────────────────────────────────────────────────────────────────
+
+const pendingEffects = new Set<() => void>();
+let flushScheduled = false;
+
+function scheduleFlush() {
+  if (!flushScheduled) {
+    flushScheduled = true;
+    queueMicrotask(() => {
+      flushScheduled = false;
+      const fns = [...pendingEffects];
+      pendingEffects.clear();
+      startBatch();
+      try {
+        for (const fn of fns) fn();
+      } finally {
+        endBatch();
+      }
+    });
+  }
+}
+
+/**
+ * Create a batched effect. When dependencies change, re-execution is deferred
+ * to the next microtask. Multiple dependency changes within the same tick
+ * result in a single re-run.
+ *
+ * Dependencies are fully re-tracked on every run (including deferred ones),
+ * so conditional signal reads are always picked up correctly.
+ *
+ * Returns a dispose function to stop the effect.
+ */
+function batchEffect(fn: VoidFunction): VoidFunction {
+  let disposed = false;
+  let firstRun = true;
+  let stop: VoidFunction | null = null;
+
+  function setup() {
+    stop?.();
+    if (disposed) return;
+    stop = effectScope(() => {
+      effect(() => {
+        if (disposed) return;
+        if (firstRun) {
+          firstRun = false;
+          fn();
+        } else {
+          // Dep changed — tear down this tracking effect and schedule re-run
+          stop?.();
+          stop = null;
+          pendingEffects.add(rerun);
+          scheduleFlush();
+        }
+      });
+    });
+  }
+
+  function rerun() {
+    if (disposed) return;
+    // Re-run fn inside a fresh effect to re-track all deps
+    firstRun = true;
+    setup();
+  }
+
+  setup();
+
+  return () => {
+    disposed = true;
+    pendingEffects.delete(rerun);
+    stop?.();
+  };
+}
+
+/** Wait for all pending batched effects to flush. */
+export function nextTick(): Promise<void> {
+  return new Promise((resolve) => queueMicrotask(resolve));
+}
+
+/** Run a function with batched signal updates — effects flush once at the end. */
+function batch(fn: VoidFunction) {
+  startBatch();
+  try { fn(); } finally { endBatch(); }
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Signal wrapper with HMR state preservation
@@ -105,7 +200,7 @@ function onCleanup(node: Node, fn: VoidFunction) {
 // Reactivity helpers
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Bind an effect scoped to a node's lifetime. Disposed when the node is removed from DOM. */
+/** Bind a synchronous effect scoped to a node's lifetime. Disposed when the node is removed from DOM. */
 function bindEffect(node: Node, fn: VoidFunction) {
   const stop = effectScope(() => { effect(fn); });
   onCleanup(node, stop);

@@ -12,6 +12,18 @@
   --color-mark: #ffe066;
 }
 
+:root {
+  --sh-class: #7ec8e3;
+  --sh-identifier: #e0e0ff;
+  --sh-sign: #a0a0d0;
+  --sh-property: #8cb4ff;
+  --sh-entity: #5ef0d0;
+  --sh-jsxliterals: #c4a7ff;
+  --sh-string: #ffe066;
+  --sh-keyword: #ff7b72;
+  --sh-comment: #7878a8;
+}
+
 * {
   border-color: var(--color-line);
   border-radius: 0 !important;

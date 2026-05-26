@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { Window } from "happy-dom";
+import { effect as batchEffect, signal as signalForEffect, nextTick } from "./alien-singui.ts";
 
 const $window = new Window();
 
@@ -382,5 +383,102 @@ describe("event parsing", () => {
 
     expect(registeredEvent).toBe("gotpointercapture");
     expect(registeredCapture).toBe(false);
+  });
+});
+
+// ── Batched effect ──────────────────────────────────────────────────────────
+
+describe("batched effect", () => {
+  test("runs synchronously on creation", () => {
+    let runs = 0;
+    const s = signalForEffect(0);
+    batchEffect(() => { s(); runs++; });
+    expect(runs).toBe(1);
+  });
+
+  test("defers re-run to microtask", async () => {
+    let runs = 0;
+    const s = signalForEffect(0);
+    batchEffect(() => { s(); runs++; });
+    expect(runs).toBe(1);
+
+    s(1);
+    // Should NOT have re-run synchronously
+    expect(runs).toBe(1);
+
+    await nextTick();
+    expect(runs).toBe(2);
+  });
+
+  test("batches multiple signal changes into one re-run", async () => {
+    let runs = 0;
+    const a = signalForEffect(0);
+    const b = signalForEffect(0);
+    batchEffect(() => { a(); b(); runs++; });
+    expect(runs).toBe(1);
+
+    a(1);
+    b(2);
+    a(3);
+    expect(runs).toBe(1);
+
+    await nextTick();
+    expect(runs).toBe(2);
+  });
+
+  test("re-tracks conditional dependencies", async () => {
+    let runs = 0;
+    const cond = signalForEffect(true);
+    const a = signalForEffect("a");
+    const b = signalForEffect("b");
+
+    batchEffect(() => {
+      runs++;
+      if (cond()) { a(); } else { b(); }
+    });
+    expect(runs).toBe(1);
+
+    // Changing `a` should trigger (it's currently tracked)
+    a("a2");
+    await nextTick();
+    expect(runs).toBe(2);
+
+    // Switch branch — now `b` should be tracked, `a` should not
+    cond(false);
+    await nextTick();
+    expect(runs).toBe(3);
+
+    // Changing `a` should NOT trigger (no longer tracked)
+    a("a3");
+    await nextTick();
+    expect(runs).toBe(3);
+
+    // Changing `b` SHOULD trigger
+    b("b2");
+    await nextTick();
+    expect(runs).toBe(4);
+  });
+
+  test("dispose stops the effect", async () => {
+    let runs = 0;
+    const s = signalForEffect(0);
+    const stop = batchEffect(() => { s(); runs++; });
+    expect(runs).toBe(1);
+
+    stop();
+    s(1);
+    await nextTick();
+    expect(runs).toBe(1);
+  });
+
+  test("nextTick resolves after flush", async () => {
+    const values: number[] = [];
+    const s = signalForEffect(0);
+    batchEffect(() => { values.push(s()); });
+    expect(values).toEqual([0]);
+
+    s(42);
+    await nextTick();
+    expect(values).toEqual([0, 42]);
   });
 });

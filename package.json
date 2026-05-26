@@ -9,7 +9,8 @@
     "start": "NODE_ENV=production bun src/index.ts"
   },
   "dependencies": {
-    "alien-signals": "^3.2.1"
+    "alien-signals": "^3.2.1",
+    "sugar-high": "^1.2.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
